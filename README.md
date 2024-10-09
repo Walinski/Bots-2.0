@@ -96,8 +96,8 @@ This section describes the configuration for the Ollama service in our Docker Co
 - `OLLAMA_LOAD_TIMEOUT`: Sets model loading timeout to 10 minutes.
 - `OLLAMA_FLASH_ATTENTION`: Flash Attention uses a more memory-efficient algorithm that reduces the memory requirements for attention computation.
 - `OLLAMA_NOHISTORY`: Disables the remembering of interaction history if true.
-- `OLLAMA_NUM_PARALLEL`: Sets the number of parallel processing requests to 1.
-- `OLLAMA_NUM_THREADS`: Limits the number of threads/CPU cores to 1.
+- `OLLAMA_NUM_PARALLEL`: Sets the number of parallel processing requests. Default 1.
+- `OLLAMA_NUM_THREADS`: Limits the number of threads/CPU cores to use. Default 1.
 - `OLLAMA_MODEL_TYPE`: Specifies the model type as `llama3`.
 
 ### Container Behavior
