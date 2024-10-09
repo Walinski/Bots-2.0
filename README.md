@@ -40,11 +40,8 @@ A continuation of **https://github.com/brosquinha/houdini-bot-plugin**
    - Command: Quickchat "Follow Me"
    - Description: Bots near the player will follow them, tracking coordinates with an offset.
 
-10. **Reacting to Snowballs**
-    - Bots react when snowballs are thrown at them.
-
-11. **Quick Chat Hello Responses**
-    -Bots respond to quickchat Hello messages with safechat responses.
+10. **Reactions**
+    - Bots react when snowballs are thrown at them and when greeted with quickchat messages.
 
 12. **Playing Sled Racing**
     - Description: Bots can join the Sled Racing minigame if you wait in the queue at the ski hill.
@@ -120,3 +117,8 @@ This configuration optimizes Ollama for GPU-accelerated inference while providin
 2. https://github.com/rawanalkurd/Generative-AI-DSPy/blob/main/Running%20LLMs%20Locally%20A%20Guide%20to%20Setting%20Up%20Ollama%20with%20Docker.ipynb
 3. https://github.com/rolfhelder/ollama-docker-compose/blob/main/docker-compose.yaml
 4. https://secretdatascientist.com/ollama-cheatsheet/
+
+## Planned Improvements
+1. Trigger emojis and actions (dance, wave) where appropriate within conversations
+2. Random assortments of igloo furniture to simulate igloo designs
+3. Additional contexts added to the API message (i.e., ninja status, room name)
