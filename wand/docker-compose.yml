@@ -1,0 +1,279 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:12.2-alpine
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - wand
+    ports:
+      - 5432:5432
+    volumes:
+      - ./houdini/houdini.sql:/docker-entrypoint-initdb.d/houdini.sql
+      - postgres:/var/lib/postgresql/data
+  redis:
+    image: redis:5.0.9-alpine
+    restart: always
+    networks:
+      - wand
+    ports:
+      - 6379
+  web:
+    build: ./web
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - ${WEB_PORT}:80
+    networks:
+      - wand
+    links:
+      - dash:dash
+    volumes:
+      - ./www:/usr/share/nginx/html
+      - ./legacy-media:/usr/share/nginx/legacy
+      - ./vanilla-media:/usr/share/nginx/vanilla
+      - ./servers.xml:/t/servers.xml
+
+      - ./templates/sites/legacy.conf.template:/etc/nginx/conf.d/legacy.conf.template
+      - ./templates/sites/vanilla.conf.template:/etc/nginx/conf.d/vanilla.conf.template
+      - ./templates/legacy-media/play/index.html.template:/t/legacy/play/index.html.template
+      - ./templates/legacy-media/play/es/index.html.template:/t/legacy/play/es/index.html.template
+      - ./templates/legacy-media/play/fr/index.html.template:/t/legacy/play/fr/index.html.template
+      - ./templates/legacy-media/play/pt/index.html.template:/t/legacy/play/pt/index.html.template
+      - ./templates/vanilla-media/play/index.html.template:/t/vanilla/play/index.html.template
+      - ./templates/vanilla-media/play/es/index.html.template:/t/vanilla/play/es/index.html.template
+      - ./templates/vanilla-media/play/fr/index.html.template:/t/vanilla/play/fr/index.html.template
+      - ./templates/vanilla-media/play/pt/index.html.template:/t/vanilla/play/pt/index.html.template
+      - ./templates/vanilla-media/media/play/web_service/environment_data.xml.template:/t/vanilla/media/play/web_service/environment_data.xml.template
+
+    command: ["dockerize", 
+              "-template", "/etc/nginx/conf.d/legacy.conf.template:/etc/nginx/conf.d/legacy.conf",
+              "-template", "/etc/nginx/conf.d/vanilla.conf.template:/etc/nginx/conf.d/vanilla.conf",
+              "-template", "/t/servers.xml:/usr/share/nginx/legacy/media/servers.xml",
+              "-template", "/t/servers.xml:/usr/share/nginx/vanilla/play/servers.xml",
+
+              "-template", "/t/legacy/play/index.html.template:/usr/share/nginx/legacy/play/index.html",
+              "-template", "/t/legacy/play/index.html.template:/usr/share/nginx/legacy/play/en/index.html",
+              "-template", "/t/legacy/play/es/index.html.template:/usr/share/nginx/legacy/play/es/index.html",
+              "-template", "/t/legacy/play/fr/index.html.template:/usr/share/nginx/legacy/play/fr/index.html",
+              "-template", "/t/legacy/play/pt/index.html.template:/usr/share/nginx/legacy/play/pt/index.html",
+              "-template", "/t/vanilla/play/index.html.template:/usr/share/nginx/vanilla/play/index.html",
+              "-template", "/t/vanilla/play/index.html.template:/usr/share/nginx/vanilla/play/en/index.html",
+              "-template", "/t/vanilla/play/es/index.html.template:/usr/share/nginx/vanilla/play/es/index.html",
+              "-template", "/t/vanilla/play/fr/index.html.template:/usr/share/nginx/vanilla/play/fr/index.html",
+              "-template", "/t/vanilla/play/pt/index.html.template:/usr/share/nginx/vanilla/play/pt/index.html",
+              "-template", "/t/vanilla/media/play/web_service/environment_data.xml.template:/usr/share/nginx/vanilla/media/play/web_service/environment_data.xml",
+              "nginx", "-g", "daemon off;"]
+  houdini_login:
+    build: ./houdini
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - wand
+    ports:
+      - ${GAME_LOGIN_PORT}:${GAME_LOGIN_PORT}
+    volumes:
+      - ./houdini:/usr/src/houdini
+      - ./wait-for-postgres.sh:/usr/src/houdini/wait-for-postgres.sh
+    depends_on:
+      - db
+      - redis
+    links:
+      - db:db
+      - redis:redis
+    entrypoint: ["dockerize", "-wait", "tcp://redis:6379", "./wait-for-postgres.sh", "db", "python", "bootstrap.py", "login"]
+    command: ["--port", "${GAME_LOGIN_PORT}",
+              "--redis-address", "redis", 
+              "--database-address", "db", 
+              "--database-user", "${POSTGRES_USER}", 
+              "--database-name", "${POSTGRES_USER}", 
+              "--database-password", "${POSTGRES_PASSWORD}"]
+  ollama:
+    build: 
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: ollama
+    env_file: .env
+    entrypoint: /tmp/run_ollama.sh
+    ports:
+      - 11434:11434
+    volumes:
+      - .:/app/
+      - ./ollama/ollama:/root/.ollama
+    environment:
+      # Duration to keep connections alive (10 minutes)
+      - OLLAMA_KEEP_ALIVE=10m
+      # Timeout for loading models (10 minutes)
+      - OLLAMA_LOAD_TIMEOUT=10m
+      # FlashAttention optimization for neural networks
+      - OLLAMA_FLASH_ATTENTION=1
+      # Whether to (not) remember history of previous interactions
+      - OLLAMA_NOHISTORY=true
+      # Number of parallel processing requests
+      - OLLAMA_NUM_PARALLEL=1
+      # Number of threads / CPU cores to use
+      - OLLAMA_NUM_THREADS=1
+      # Model Type
+      - OLLAMA_MODEL_TYPE=llama3
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    networks:
+      - wand
+  # deploy:
+  #   resources:
+  #     reservations:
+  #       devices:
+  #         - capabilities: [gpu]
+  # runtime: nvidia
+  houdini_blizzard:
+    build: ./houdini
+    restart: always
+    networks:
+      - wand
+    ports:
+      - 9875:9875
+    volumes:
+      - ./houdini:/usr/src/houdini
+    depends_on:
+      - houdini_login
+    links:
+      - db:db
+      - redis:redis
+      - houdini_login:login
+    entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}", "python", "bootstrap.py", "world"]
+    command: ["-id", "3100", "--name", "blizzard", "--port", "9875", "--lang", "en",
+              "--redis-address", "redis",
+              "--database-address", "db",
+              "--database-user", "${POSTGRES_USER}", 
+              "--database-name", "${POSTGRES_USER}", 
+              "--database-password", "${POSTGRES_PASSWORD}",
+              "--logging-level", "DEBUG"]
+  houdini_glaciar:
+   build: ./houdini
+   restart: always
+   networks:
+     - wand
+   ports:
+     - 9876:9876
+   volumes:
+     - ./houdini:/usr/src/houdini
+   depends_on:
+     - houdini_login
+   links:
+     - db:db
+     - redis:redis
+     - houdini_login:login
+   entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}", "python", "bootstrap.py", "world"]
+   command: ["-id", "3101", "--name", "glaciar", "--port", "9876", "--lang", "es",
+             "--redis-address", "redis",
+             "--database-address", "db",
+             "--database-user", "${POSTGRES_USER}", 
+             "--database-name", "${POSTGRES_USER}", 
+             "--database-password", "${POSTGRES_PASSWORD}"]
+  houdini_avalanche:
+    build: ./houdini
+    restart: always
+    networks:
+      - wand
+    ports:
+      - 9877:9877
+    volumes:
+      - ./houdini:/usr/src/houdini
+    depends_on:
+      - houdini_login
+    links:
+      - db:db
+      - redis:redis
+      - houdini_login:login
+    entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}", "python", "bootstrap.py", "world"]
+    command: ["-id", "3102", "--name", "avalanche", "--port", "9877", "--lang", "pt",
+              "--redis-address", "redis",
+              "--database-address", "db",
+              "--database-user", "${POSTGRES_USER}", 
+              "--database-name", "${POSTGRES_USER}", 
+              "--database-password", "${POSTGRES_PASSWORD}"]
+  houdini_yeti:
+    build: ./houdini
+    restart: always
+    networks:
+      - wand
+    ports:
+      - 9878:9878
+    volumes:
+      - ./houdini:/usr/src/houdini
+    depends_on:
+      - houdini_login
+    links:
+      - db:db
+      - redis:redis
+      - houdini_login:login
+    entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}", "python", "bootstrap.py", "world"]
+    command: ["-id", "3103", "--name", "yeti", "--port", "9878", "--lang", "fr",
+              "--redis-address", "redis",
+              "--database-address", "db",
+              "--database-user", "${POSTGRES_USER}", 
+              "--database-name", "${POSTGRES_USER}", 
+              "--database-password", "${POSTGRES_PASSWORD}"]
+  dash:
+    build: ./dash
+    restart: always
+    networks:
+      - wand
+    env_file:
+      - .env
+    ports:
+      - 3000
+    volumes:
+      - ./dash:/usr/src/dash
+      - ./vanilla-media/media/avatar/paper:/usr/src/dash/items
+      - ./templates/dash/config.py.template:/usr/src/dash/config.py.template
+    depends_on:
+      - db
+      - redis
+    links:
+      - db:db
+      - redis:redis
+      - houdini_login:login
+    entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}",
+                "-template", "/usr/src/dash/config.py.template:/usr/src/dash/config.py",
+                "python", "bootstrap.py"]
+    command: ["-c", "config.py"]
+  snowflake:
+    build: ./snowflake
+    restart: always
+    networks:
+      - wand
+    ports:
+      - ${SNOWFLAKE_PORT}:${SNOWFLAKE_PORT}
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+      - MEDIA_LOCATION=${WEB_VANILLA_MEDIA}
+      - PORT=${SNOWFLAKE_PORT}
+    volumes:
+      - ./snowflake:/usr/src/snowflake
+      - ./.env:/usr/src/snowflake/.env
+    depends_on:
+      - db
+      - redis
+      - dash
+    links:
+      - db:db
+      - redis:redis
+      - houdini_login:login
+    entrypoint: ["dockerize", "-wait", "tcp://login:${GAME_LOGIN_PORT}", "python", "./main.py"]
+
+networks:
+  wand:
+    driver: bridge
+
+volumes:
+  postgres:
+  llama3_data:  
