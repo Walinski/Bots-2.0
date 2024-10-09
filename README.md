@@ -2,6 +2,7 @@
 
 A continuation of **https://github.com/brosquinha/houdini-bot-plugin**
 
+![Video Demo](https://giphy.com/gifs/8gh18qrRzyGbxAlrS6)
 ## Features
 
 1. **Spawning (Mascots/) Bots**
