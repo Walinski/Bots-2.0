@@ -1,4 +1,4 @@
-# Bot Plugin for Game Mascots
+# Bots 2.0 for Houdini
 
 This plugin enhances the previous bot plugin by introducing several new features and commands to improve the gameplay experience. The bots can now perform a variety of actions and interact with players in more dynamic ways.
 
