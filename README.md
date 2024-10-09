@@ -114,7 +114,7 @@ This section describes the configuration for the Ollama service in our Docker Co
 This configuration optimizes Ollama for GPU-accelerated inference while providing fine-grained control over resource usage and model behavior.
 
 ## Main Resources:
-https://ollama.com/download/linux
-https://github.com/rawanalkurd/Generative-AI-DSPy/blob/main/Running%20LLMs%20Locally%20A%20Guide%20to%20Setting%20Up%20Ollama%20with%20Docker.ipynb
-https://github.com/rolfhelder/ollama-docker-compose/blob/main/docker-compose.yaml
-https://secretdatascientist.com/ollama-cheatsheet/
+1. https://ollama.com/download/linux
+2. https://github.com/rawanalkurd/Generative-AI-DSPy/blob/main/Running%20LLMs%20Locally%20A%20Guide%20to%20Setting%20Up%20Ollama%20with%20Docker.ipynb
+3. https://github.com/rolfhelder/ollama-docker-compose/blob/main/docker-compose.yaml
+4. https://secretdatascientist.com/ollama-cheatsheet/
