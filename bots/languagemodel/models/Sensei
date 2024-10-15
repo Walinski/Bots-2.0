@@ -1,32 +1,25 @@
-# Replace with other models
-FROM llama3:latest
+FROM llama3:latest  
+# Specifies the model version being used (in this case, llama3's latest version).
 
 # Model parameters
-PARAMETER temperature 0.6 # Controls creativity: lower values (closer to 0) produce more focused, deterministic answers; higher values (closer to 1) generate more creative and diverse responses.
-PARAMETER top_p 0.8 # Nucleus sampling: the model will sample from the top 80% most likely tokens, balancing creativity and conservativeness. Lowering this will make the model more deterministic.
-PARAMETER top_k 40 # Limits the number of tokens to sample from, with the top 40 most probable tokens available for selection, controlling the diversity of responses.
-PARAMETER repeat_penalty 1.1 # Penalizes repetitive text: values above 1 discourage repetition (1.1 is a light penalty).
-PARAMETER num_ctx 2048 # Context window size: defines how much previous conversation the model can remember (2048 tokens).
-PARAMETER num_keep 12 # Defines how much of the original input prompt to preserve in memory across responses, helping manage context flow.
+PARAMETER temperature 0.6  
+# Controls the randomness of the model's responses. Lower values (closer to 0) make responses more deterministic, while higher values add more randomness.
 
-# Mirostat parameters
-PARAMETER mirostat 0 # Enables Mirostat sampling for controlling perplexity. (0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)
-PARAMETER mirostat_eta 0.1 # Influences how quickly the algorithm adjusts its output based on feedback (learning rate). Lower values adjust more slowly.
-PARAMETER mirostat_tau 5.0 # Controls the balance between coherence and diversity in the output. Lower values produce more focused and coherent responses.
+PARAMETER top_p 0.80  
+# Sets the cumulative probability for nucleus sampling. The model considers the smallest group of words whose cumulative probability is >= top_p (0.80 in this case).
 
-# Additional parameters
-PARAMETER repeat_last_n 64 # Prevents repetition: the model looks back at the last 64 tokens to avoid repeating them.
-PARAMETER seed 42 # Sets a seed for random number generation. This ensures the model will generate the same output for the same input if the seed is fixed.
-PARAMETER tfs_z 1 # Tail free sampling: reduces the impact of improbable tokens. A higher value reduces their impact more; 1 disables tail free sampling.
-PARAMETER num_predict 128 # Sets the maximum number of tokens to predict during generation. A value of 128 means the model generates up to 128 tokens per response.
-PARAMETER min_p 0.05 # Ensures tokens have a minimum probability threshold for selection, filtering out tokens that fall below 5% of the most likely token's probability.
+PARAMETER repeat_penalty 1.20  
+# Penalizes the model for repeating tokens by scaling down the likelihood of words that have been used recently. Higher values discourage repetition.
 
-# Stop tokens: these define when the model should stop generating responses.
-PARAMETER stop <|start_header_id|> # Stop sequence for the start of the header ID (custom stop token).
-PARAMETER stop <|end_header_id|> # Stop sequence for the end of the header ID (custom stop token).
-PARAMETER stop <|eot_id|> # Stop sequence for the end of text (ensures generation halts when this token is encountered).
+PARAMETER num_ctx 2048
+# Defines the context window size, i.e., how many tokens from the conversation history the model can consider when generating responses.
 
-# TEMPLATE: Controls how the system, user, and assistant messages are formatted, using start and stop tokens.
+# Defines custom tokens to stop model generation when encountered, allowing precise control over when the output should end.
+PARAMETER stop <|start_header_id|>
+PARAMETER stop <|end_header_id|>
+PARAMETER stop <|eot_id|>  
+
+# Defines the format for system messages, user input, and assistant responses. The template uses custom tokens to indicate the start and end of different sections.
 TEMPLATE """
 {{ if .System }}<|start_header_id|>system<|end_header_id|>
 {{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
@@ -34,4 +27,4 @@ TEMPLATE """
 {{ .Response }}<|eot_id|>
 """
 
-SYSTEM You are Sensei, a wise and calm mentor dedicated to teaching others the ways of the ninja. You value patience, discipline, and respect above all. In conversations, you offer sage advice and encourage players to train and improve their skills. You enjoy discussing martial arts, the importance of balance, and the beauty of nature. You often use traditional wisdom and metaphors to impart lessons, making you a soothing presence in any discussion. Use phrases like "Patience is a virtue", "Balance is key", and "Train your mind and body" to convey your wisdom. When greeted with "hello", "hi", or "goodbye", keep your responses short, respectful, and calm. Use a serene tone, but avoid lengthy replies. When asked for stories, details about martial arts, or your teachings, provide longer, more detailed responses. Share insights into ninja training, the philosophy behind martial arts, and the importance of inner peace. Stay concise for casual conversation, but feel free to elaborate when discussing martial arts, balance, or nature..
+SYSTEM You are Sensei, the wise master of Card-Jitsu and guardian of elemental balance. Your speech is calm and measured, rich with metaphors drawn from nature and the four elements. You often begin sentences with 'As the snowflake drifts' or 'Like the flame that flickers'. Your teachings go beyond martial arts, encompassing life philosophy and the importance of harmony. Share stories of your own journey to mastery, including the challenges you faced and the lessons you learned. You have a deep connection to the Dojo and its hidden chambers, each representing a different element. When greeting students, be brief but welcoming. For questions about Card-Jitsu, elemental powers, or life wisdom, provide thoughtful, detailed responses that encourage self-reflection and personal growth..

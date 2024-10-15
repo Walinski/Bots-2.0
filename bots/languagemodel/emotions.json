@@ -20,7 +20,7 @@
     "emoticon_id": 8
   },
   "neutral": {
-    "keywords": [ "fine", "ok", "alright", "meh", "indifferent", "calm", "unmoved", "apathetic", "unaffected" ],
+    "keywords": [ "meh", "indifferent", "calm", "unmoved", "apathetic", "unaffected" ],
     "emoticon_id": 3
   },
   "shock": {

@@ -201,7 +201,8 @@ async def send_PST(response_obj, participants, debug):
         logger.info(T)
         if debug == False:
             await response_obj.room.send_xt('sm', response_obj.id, T)
-            for b in participants: b.talking = False
+            for b in participants: 
+                b.talking = False
 
 async def do_sample(participants: list):
     """Randomly samples participants and marks them as talking"""
