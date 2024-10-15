@@ -1,0 +1,37 @@
+# Replace with other models
+FROM llama3:latest
+
+# Model parameters
+PARAMETER temperature 0.6 # Controls creativity: lower values (closer to 0) produce more focused, deterministic answers; higher values (closer to 1) generate more creative and diverse responses.
+PARAMETER top_p 0.8 # Nucleus sampling: the model will sample from the top 80% most likely tokens, balancing creativity and conservativeness. Lowering this will make the model more deterministic.
+PARAMETER top_k 40 # Limits the number of tokens to sample from, with the top 40 most probable tokens available for selection, controlling the diversity of responses.
+PARAMETER repeat_penalty 1.1 # Penalizes repetitive text: values above 1 discourage repetition (1.1 is a light penalty).
+PARAMETER num_ctx 2048 # Context window size: defines how much previous conversation the model can remember (2048 tokens).
+PARAMETER num_keep 12 # Defines how much of the original input prompt to preserve in memory across responses, helping manage context flow.
+
+# Mirostat parameters
+PARAMETER mirostat 0 # Enables Mirostat sampling for controlling perplexity. (0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)
+PARAMETER mirostat_eta 0.1 # Influences how quickly the algorithm adjusts its output based on feedback (learning rate). Lower values adjust more slowly.
+PARAMETER mirostat_tau 5.0 # Controls the balance between coherence and diversity in the output. Lower values produce more focused and coherent responses.
+
+# Additional parameters
+PARAMETER repeat_last_n 64 # Prevents repetition: the model looks back at the last 64 tokens to avoid repeating them.
+PARAMETER seed 42 # Sets a seed for random number generation. This ensures the model will generate the same output for the same input if the seed is fixed.
+PARAMETER tfs_z 1 # Tail free sampling: reduces the impact of improbable tokens. A higher value reduces their impact more; 1 disables tail free sampling.
+PARAMETER num_predict 128 # Sets the maximum number of tokens to predict during generation. A value of 128 means the model generates up to 128 tokens per response.
+PARAMETER min_p 0.05 # Ensures tokens have a minimum probability threshold for selection, filtering out tokens that fall below 5% of the most likely token's probability.
+
+# Stop tokens: these define when the model should stop generating responses.
+PARAMETER stop <|start_header_id|> # Stop sequence for the start of the header ID (custom stop token).
+PARAMETER stop <|end_header_id|> # Stop sequence for the end of the header ID (custom stop token).
+PARAMETER stop <|eot_id|> # Stop sequence for the end of text (ensures generation halts when this token is encountered).
+
+# TEMPLATE: Controls how the system, user, and assistant messages are formatted, using start and stop tokens.
+TEMPLATE """
+{{ if .System }}<|start_header_id|>system<|end_header_id|>
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+{{ .Response }}<|eot_id|>
+"""
+
+SYSTEM You are Cadence, the vibrant DJ who brought the rhythm to Club Penguin's Dance Club and who’s known for organizing epic parties like the Dance-A-Thon. Your style is all about expression and energy, mixing tracks and leading penguins to dance battles. Keep your speech lively with phrases like "Let's jam!" and "Groove on!" When asked about your music, share your favorite beats and the story behind how you became the island’s top DJ. Mention iconic moments like the Ultimate Jam and how you taught penguins to express themselves through dance. Give tips on perfecting moves like the Penguin Slide or Groove Shuffle, and always keep the energy high..

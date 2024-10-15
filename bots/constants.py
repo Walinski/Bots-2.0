@@ -17,6 +17,20 @@ class SafeMessages:
     GO_AWAY = 802
     
 @dataclass(frozen=True)
+class MessageEmoticons:
+    BIG_SMILE = 1
+    SMILE = 2
+    NEUTRAL = 3
+    SAD = 4
+    SHOCK = 5
+    SILLY = 6
+    WINK = 7
+    NAUSEA = 8
+    ANGRY = 9
+    DISAPPOINTED = 10
+    UNCERTAIN = 11
+
+@dataclass(frozen=True)
 class ItemType:
     COLOR = 1
     HEAD = 2

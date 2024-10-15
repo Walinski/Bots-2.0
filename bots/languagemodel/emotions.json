@@ -1,0 +1,34 @@
+{
+  "happy": {
+    "keywords": [ "glad", "joy", "excited", "smile", "pleased", "delighted", "ecstatic", "thrilled", "cheerful", "content", "grateful", "satisfied" ],
+    "emoticon_id": 1
+  },
+  "sad": {
+    "keywords": [ "disappointed", "unhappy", "regret", "upset", "miserable", "heartbroken" ],
+    "emoticon_id": 4
+  },
+  "angry": {
+    "keywords": [ "furious", "mad", "angry", "outraged", "annoyed", "irritated", "frustrated", "infuriated", "livid", "enraged" ],
+    "emoticon_id": 9
+  },
+  "silly": {
+    "keywords": [ "hilarious", "funny", "joke", "amused", "goofy", "whimsical", "wacky", "playful", "ridiculous", "absurd" ],
+    "emoticon_id": 6
+  },
+  "disgust": {
+    "keywords": [ "gross", "disgusted", "nauseous", "revolting", "repulsed", "sickened", "vile", "abhorrent", "detestable" ],
+    "emoticon_id": 8
+  },
+  "neutral": {
+    "keywords": [ "fine", "ok", "alright", "meh", "indifferent", "calm", "unmoved", "apathetic", "unaffected" ],
+    "emoticon_id": 3
+  },
+  "shock": {
+    "keywords": [ "shocked", "surprised", "gasp", "astonished", "stunned", "flabbergasted", "dumbfounded", "speechless" ],
+    "emoticon_id": 5
+  },
+  "unsure": {
+    "keywords": [ "doubtful", "uncertain", "hesitant", "puzzled", "perplexed", "bewildered" ],
+    "emoticon_id": 11
+  }
+}

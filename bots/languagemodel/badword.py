@@ -1,4 +1,8 @@
+# External Imports
 from better_profanity import profanity
+
+# Package Imports
+from . import logger
 
 profanity.load_censor_words()
 
@@ -27,7 +31,7 @@ def deobfuscate_word(word):
             word = word.replace(replacement, letter)
     return word
 
-async def is_profane(logger, question: str):
+async def contains_badword(question: str):
 
     if profanity.contains_profanity(question):
         logger.info(f"Profane word in: {question}")

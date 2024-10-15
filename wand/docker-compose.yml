@@ -105,24 +105,24 @@ services:
       - .:/app/
       - ./ollama/ollama:/root/.ollama
     environment:
-      - OLLAMA_KEEP_ALIVE=10m
+      - OLLAMA_KEEP_ALIVE=60m
       - OLLAMA_LOAD_TIMEOUT=10m
       - OLLAMA_FLASH_ATTENTION=1
-      - OLLAMA_NOHISTORY=false
-      - OLLAMA_NUM_PARALLEL=3 # Parallel Requests
-      - OLLAMA_NUM_THREADS=3 # CPU Cores
+      - OLLAMA_NOHISTORY=false # History is managed in Python
+      - OLLAMA_NUM_PARALLEL=3
+      - OLLAMA_NUM_THREADS=8
       - OLLAMA_MODEL_TYPE=llama3
     pull_policy: always
     tty: true
     restart: unless-stopped
     networks:
       - wand
- #   deploy:
- #     resources:
- #       reservations:
- #         devices:
- #           - capabilities: [gpu]
- #   runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
   houdini_blizzard:
     build: ./houdini
     restart: always

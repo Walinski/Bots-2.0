@@ -1,0 +1,17 @@
+asyncio
+redis
+cacheout
+gino
+ujson
+defusedxml
+bcrypt
+uvloop; sys_platform != 'win32'
+pytz
+
+ollama
+faker
+requests
+better_profanity
+fuzzywuzzy
+fuzzywuzzy[speedup]  # This includes both fuzzywuzzy and the speedup dependency (python-Levenshtein)
+aiohttp

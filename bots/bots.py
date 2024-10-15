@@ -14,8 +14,6 @@ from houdini.penguin import Penguin
 from .constants import ITEM_TYPE, ROOM_AREAS, ROOM_SPOTS, SAFE_MESSAGES, RoomSpotsController
 from .games import SledRacing
 
-from .languagemodel import converse
-
 if TYPE_CHECKING:
     from houdini.plugins.bots import BotPlugin
 
@@ -53,7 +51,7 @@ class PenguinBot(Penguin):
         self.frame = 18
         self._activity_task = None
         self.called = False
-        self.is_ready_to_listen = True
+        self.talking = False
         self._activity_loop_running = False
         self._activity_task = None
 
@@ -108,24 +106,24 @@ class PenguinBot(Penguin):
 
     async def maybe_move_to_spot(self):
         """Moves the bot to a room spot if enabled by the plugin config."""
-        if self.config.get('enable_room_spots', True):
+        if self.plugin.ENABLE_SPOT_LOCATIONS and not self.called:
             await self.move_to_spot()
 
     async def maybe_random_frame(self):
         """Changes the bot's frame to a random valid one if enabled."""
-        if self.config.get('enable_random_frame', True):
+        if self.plugin.ENABLE_RANDOM_FRAME and not self.called:
             await asyncio.sleep(random.choice(self.ACTIVITY_SLEEP_RANGE))
             await self.random_frame()
 
     async def maybe_random_move(self):
         """Moves the bot randomly if enabled."""
-        if self.config.get('enable_random_movement', True):
+        if self.plugin.ENABLE_RANDOM_MOVEMENT:
             await asyncio.sleep(random.choice(self.ACTIVITY_SLEEP_RANGE))
             await self.random_move()
 
     async def move_if_idle(self):
         """Moves the bot to a random room if not following another penguin."""
-        if self.config.get('enable_random_room_movement', True) and self.following_penguin is None and not self.called:
+        if self.plugin.ENABLE_RANDOM_MOVEMENT and self.following_penguin is None and not self.called:
             await asyncio.sleep(random.choice(self.ACTIVITY_SLEEP_RANGE))
             await self.randomize_room()
 
@@ -276,17 +274,7 @@ class PenguinBot(Penguin):
     def meets_interaction_distance(self, p) -> bool:
         return math.dist((self.x, self.y), (p.x, p.y)) < self.config.get(
             'interaction_distance', self.DEFAULT_INTERACTION_DISTANCE)
-
-    async def handle_response(self, p, question: str = ""):
-        """Handles messages and acts on recieving them"""
-        if not self.meets_interaction_distance(p):
-            p.logger.info("Less than minimum distance")
-            return
-        if self.is_ready_to_listen: 
-            p.logger.info(f"{self.nickname} is talking")
-            self.is_ready_to_listen = False  
-            await converse.send_question(BOT=self, nickname=self.nickname, question=question)    
-        
+            
     async def room_sync_clothing(self):
         """sends clothing data to other clients in the room"""
         if not self.room:

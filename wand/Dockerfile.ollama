@@ -1,9 +1,17 @@
+# Docker Image
 FROM ollama/ollama
 
+# Running in /tmp
 COPY ./run_ollama.sh /tmp/run_ollama.sh
 
 WORKDIR /tmp
 
+# Ensure is executable
 RUN chmod +x run_ollama.sh
 
+# Define the ENTRYPOINT
+ENTRYPOINT ["/tmp/run_ollama.sh"]
+
 EXPOSE 11434
+
+

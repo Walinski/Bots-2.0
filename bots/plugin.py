@@ -23,6 +23,8 @@ from houdini.plugins import IPlugin
 from . import fantasynames as names
 from .bots import PenguinBot
 from .constants import ITEM_TYPE
+from .languagemodel.create import PersonaFileCreator
+from .languagemodel import converse
 
 
 # handling friend requests
@@ -63,6 +65,11 @@ class BotPlugin(IPlugin):
 
     accounts = []
     active_bots = []
+    spawned = []
+
+    ENABLE_SPOT_LOCATIONS = True
+    ENABLE_RANDOM_FRAME = True
+    ENABLE_RANDOM_MOVEMENT = True
 
     def __init__(self, server: Houdini): # initial Houdini server instance variables
 
@@ -77,12 +84,16 @@ class BotPlugin(IPlugin):
 
         self.dash_static_key = self.config.get('dash_static_key', 'houdini')
         self.email_domain = self.config.get('email_domain', 'email.com')
-        self.has_inventory = self.config.get('bots_inventory', True)
         self.active_rooms = self.config.get('active_rooms', self.room_ids)
-        self.rotation_enabled = self.config.get('bots_rotation', True)
-        self.rotation_interval = range(*self.config.get('rotation_range', [60, 180]))
-        self.config_max_population = self.config.get('max_population', 0) 
-        self.greeting_enabled = self.config.get('enable_greeting', True)
+
+        self.has_inventory = True
+        self.rotation_enabled = True
+        self.greeting_enabled = True
+
+        self.rotation_interval = range(60, 180)
+        self.beginning_population = 0
+
+        PersonaFileCreator.load_personas()
 
     async def ready(self):
 
@@ -96,7 +107,7 @@ class BotPlugin(IPlugin):
         existing_bots = await PenguinAttribute.select('penguin_id').where(PenguinAttribute.name == "BOT").gino.all()
         self.accounts = await Penguin.query.where(Penguin.id.in_([b[0] for b in existing_bots])).gino.all()
 
-        await self.populate(self.config_max_population)
+        asyncio.create_task(self.populate(self.beginning_population))
 
         if self.rotation_enabled:
             asyncio.create_task(self._rotation())
@@ -107,6 +118,7 @@ class BotPlugin(IPlugin):
         await self.server.permissions.register('bots.bpurge')
         await self.server.permissions.register('bots.spawn')
         await self.server.permissions.register('bots.brmv')
+        await self.server.permissions.register('bots.bconfig')
 
     async def populate(self, new_population: int):
 
@@ -143,7 +155,7 @@ class BotPlugin(IPlugin):
     @commands.command('bpop')
     @permissions.has_or_moderator('bots.bpop')
     async def change_bots_population(self, p, new_population: int):
-        await self.populate(new_population)
+        asyncio.create_task(self.populate(new_population))
 
     @commands.command('bpurge')
     @permissions.has_or_moderator('bots.bpurge')
@@ -256,12 +268,11 @@ class BotPlugin(IPlugin):
             }).apply()
             await BOT.room_sync_clothing()
 
-
     @commands.command('spawn')
     @permissions.has_or_moderator('bots.spawn')
     async def make_custom_bots(self, p, *args: str):
         
-        name = ''.join(args)
+        name = ' '.join(args)
 
         m = await Penguin.query.where(Penguin.username == name.lower()).gino.first()
 
@@ -282,8 +293,9 @@ class BotPlugin(IPlugin):
                 await BOT.initialize()
                 self.accounts.append(BOT)
                 self.active_bots.append(BOT)
+                self.spawned.append(BOT)
                 await self.update_houdini()
-                
+
             await BOT.go_player_room(p, p.room)
             BOT.begin_activity()
             
@@ -292,11 +304,16 @@ class BotPlugin(IPlugin):
 
     @commands.command('brmv')
     @permissions.has_or_moderator('bots.brmv')
-    async def remove_custom_bots(self, p, name: str = ""):
-        if (m := await self._penguin(name.lower())):
+    async def remove_custom_bots(self, p, *name: str):
+
+        name = ' '.join(name)
+        name = name.lower()
+
+        if (m := await self._penguin(name)):
             p.logger.info(f"{p.nickname} has despawned {m.nickname}")
 
             if m.username in {BOT.username for BOT in self.accounts}:
+                    self.spawned.remove(m)
                     await m.handle_disconnected()
                     await self.update_houdini()
                     self.active_bots = [b for b in self.active_bots if b.id != m.id]
@@ -304,6 +321,28 @@ class BotPlugin(IPlugin):
                     await PenguinAttribute.delete.where(
                         (PenguinAttribute.penguin_id == m.id) & (PenguinAttribute.name == "BOT")
                     ).gino.status()
+
+    @commands.command('bconfig') # add more if required
+    @permissions.has_or_moderator('bots.bconfig')
+    async def config_setting(self, p, *setting: str):
+
+        setting = ' '.join(setting)
+        setting = setting.lower()
+
+        p.logger.info(f"setting {setting}")
+
+        settings_map = { # maps queries to actual settings
+            'random greeting': 'greeting_enabled',
+            'random frames': 'ENABLE_RANDOM_FRAME',
+            'random spots': 'ENABLE_SPOT_LOCATIONS',
+            'random movements': 'ENABLE_RANDOM_MOVEMENT',
+        }
+        if setting in settings_map:
+            attribute = settings_map[setting]
+            setattr(self, attribute, not getattr(self, attribute))
+            p.logger.info(f"{attribute} is now {'enabled' if getattr(self, attribute) else 'disabled'}")
+        else:
+            p.logger.info(f"Setting '{setting}' Invalid. Available settings: {', '.join(settings_map.keys())}")
 
     async def _rotation(self):
         """Rotate bots in and out of the game periodically."""
@@ -385,7 +424,8 @@ class BotPlugin(IPlugin):
 
     @handlers.handler(XTPacket('m', 'sm'))
     @handlers.cooldown(.5)
-    async def handle_LLM_query(self, p, _id: int, question: str):
+    async def handle_LLM_query(self, p, _id: int, message: str):
+
         if _id != p.id:
             return await p.close()
 
@@ -395,17 +435,35 @@ class BotPlugin(IPlugin):
                     return
 
         if p.server.chat_filter_words:
-            tokens = question.lower().split()
+            tokens = message.lower().split()
             if next((c for w, c in p.server.chat_filter_words.items() if w in tokens), None):
                 return
 
         try:
-            if has_command_prefix(p.server.config.command_prefix, question):
+            if has_command_prefix(p.server.config.command_prefix, message):
                 return
+
             else:
-                for b in self.active_bots:                   
-                    if b.room.id == p.room.id:
-                        await b.handle_response(p, question)
+                participants = []
+                for b in self.spawned:
+                    reason = None
+                    if b.room.id != p.room.id:
+                        reason = f"{b.nickname}: {b.room.id} is not in the same room as {p.nickname}: {p.room.id}."
+                    elif b.talking:
+                        reason = f"{b.nickname} is currently talking."
+                    elif b.nickname not in PersonaFileCreator.personas.keys():
+                        reason = f"{b.nickname} does not have a persona."
+                    if reason:
+                        p.logger.info(reason)
+                    else:
+                        participants.append(b)
+
+                p.logger.info(f"eligible participants {[s.nickname for s in participants]}")
+
+                if participants:
+                    sample_participants = await converse.do_sample(participants)
+                    p.logger.info(f"sample participants {[s.nickname for s in sample_participants]}")
+                    await converse.new_conversation(message, sample_participants, p)    
 
         except UnknownCommandException as e:
             self.server.logger.error(f"UnknownCommandException: {e}")
