@@ -3,7 +3,7 @@
 A continuation of **https://github.com/brosquinha/houdini-bot-plugin**
 
 ![GIF](https://github.com/Walinski/Bots-2.0/blob/main/Rockhopper.gif?raw=true)
-
+![GIF](https://github.com/Walinski/Bots-2.0/blob/main/MigratorGreeting.gif?raw=true)
 ## Features
 
 1. **Spawning (Mascots/) Bots**
